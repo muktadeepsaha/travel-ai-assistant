@@ -1,12 +1,8 @@
 
-// app/api/chat/route.ts
+%%writefile app/api/chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { SYSTEM_PROMPT } from "@/prompts";
-import {
-  travelSearchTool,
-  TravelSearchInput
-} from "@/lib/travelTools";
 import { MODERATION_DENIAL_MESSAGE_GENERIC } from "@/config";
 
 export const runtime = "edge";
@@ -14,7 +10,6 @@ export const runtime = "edge";
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
-  name?: string;
 };
 
 export async function POST(req: NextRequest) {
@@ -22,71 +17,46 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const userMessages: ChatMessage[] = body.messages ?? [];
 
+    // Always prepend system prompt
     const messages: ChatMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },
       ...userMessages
     ];
 
-    const lastUserContent =
-      [...userMessages].reverse().find(m => m.role === "user")?.content || "";
+    let answerText: string;
 
-    const shouldCallTool =
-      /price|cheapest|cost|flight|hotel|local transport|cab|taxi|uber|ola|airbnb/i.test(
-        lastUserContent
-      );
-
-    let toolSummary = "";
-
-    if (shouldCallTool) {
-      const destinationMatch = lastUserContent.match(
-        /to\s+([A-Za-z\s]+?)(?:\s|$|,|\.)/
-      );
-      const destination = destinationMatch?.[1]?.trim() || "";
-
-      const toolInput: TravelSearchInput = {
-        destination
-      };
-
-      const toolResult = await travelSearchTool(toolInput);
-      toolSummary = JSON.stringify(toolResult, null, 2);
-
-      messages.push({
-        role: "assistant",
-        content:
-          "I have fetched candidate flights, hotels, and local transport options using travel_search. I will now analyze them.",
-        name: "tool"
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: messages.map(m => ({
+          role: m.role,
+          content: m.content
+        })),
+        temperature: 0.6
       });
 
-      messages.push({
-        role: "user",
-        content: `Here is the JSON result from the travel_search tool:
-${toolSummary}`
-      });
+      answerText =
+        completion.choices[0]?.message?.content ??
+        MODERATION_DENIAL_MESSAGE_GENERIC;
+    } catch (modelErr: any) {
+      console.error("OpenAI API error:", modelErr);
+      answerText =
+        "I couldn’t reach the AI model right now (possibly due to API quota or configuration). Please try again later or ask the owner to check the OpenAI API billing and key.";
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content
-      })),
-      temperature: 0.6
+    return NextResponse.json({
+      answer: answerText
     });
-
-    const answer =
-      completion.choices[0].message?.content ??
-      MODERATION_DENIAL_MESSAGE_GENERIC;
-
-    return NextResponse.json({ answer, toolUsed: !!toolSummary, toolSummary });
   } catch (err: any) {
-    console.error(err);
+    console.error("Route /api/chat error:", err);
     return NextResponse.json(
       {
-        error: "Something went wrong generating a response.",
+        answer:
+          "Something went wrong on the server while planning your trip. Please try again later or contact the owner.",
+        error: "server_error",
         details: err?.message
       },
       { status: 500 }
     );
   }
 }
-
