@@ -59,9 +59,8 @@ export async function POST(req: NextRequest) {
 
       messages.push({
         role: "user",
-        content:
-          "Here is the JSON result from the travel_search tool:
-" + toolSummary
+        content: `Here is the JSON result from the travel_search tool:
+${toolSummary}`
       });
     }
 
