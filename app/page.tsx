@@ -21,7 +21,10 @@ export default function Page() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const newMessages = [...messages, { role: "user", content: input }];
+    const newMessages: UiMessage[] = [
+      ...messages,
+      { role: "user", content: input }
+    ];
     setMessages(newMessages);
     setInput("");
     setLoading(true);
@@ -174,3 +177,4 @@ export default function Page() {
     </main>
   );
 }
+
