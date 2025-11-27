@@ -1,5 +1,4 @@
 
-%%writefile lib/travelTools.ts
 // lib/travelTools.ts – dummy/no-external-API version
 
 export type TravelSearchInput = {
