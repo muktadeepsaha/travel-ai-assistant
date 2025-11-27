@@ -1,5 +1,4 @@
 
-%%writefile app/api/chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { openai } from "@/lib/openai";
 import { SYSTEM_PROMPT } from "@/prompts";
