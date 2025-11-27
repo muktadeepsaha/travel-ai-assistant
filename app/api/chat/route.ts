@@ -12,7 +12,7 @@ import { MODERATION_DENIAL_MESSAGE_GENERIC } from "@/config";
 export const runtime = "edge";
 
 type ChatMessage = {
-  role: "system" | "user" | "assistant" | "tool";
+  role: "system" | "user" | "assistant";
   content: string;
   name?: string;
 };
@@ -89,3 +89,4 @@ ${toolSummary}`
     );
   }
 }
+
