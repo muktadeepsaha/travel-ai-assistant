@@ -105,7 +105,9 @@ export default function Page() {
               </div>
             </div>
           </div>
-          <div className="app-badge">Travel · Flights · Hotels · Itineraries</div>
+          <div className="app-badge">
+            Travel · Flights · Hotels · Itineraries
+          </div>
         </header>
 
         <div className="chat-container">
@@ -138,7 +140,8 @@ export default function Page() {
             {loading && (
               <div className="message-row assistant">
                 <div className="message-bubble assistant">
-                  Thinking about the best routes, stays, and activities for you…
+                  Thinking about the best routes, stays, and activities for
+                  you…
                 </div>
               </div>
             )}
@@ -175,6 +178,15 @@ export default function Page() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder="Ask anything about your trip — e.g., 'Plan a 5-day Switzerland trip from Kolkata in December with a 5 lakh budget for 2 people.'"
+                onKeyDown={e => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault(); // prevent newline
+                    if (input.trim().length > 0 && !loading) {
+                      const form = e.currentTarget.closest("form");
+                      if (form) form.requestSubmit();
+                    }
+                  }
+                }}
               />
               <button
                 type="submit"
