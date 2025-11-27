@@ -1,9 +1,11 @@
 
-// app/page.tsx
+%%writefile app/page.tsx
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { AI_NAME, WELCOME_MESSAGE, CLEAR_CHAT_TEXT } from "@/config";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 type UiMessage = {
   role: "user" | "assistant";
@@ -16,10 +18,21 @@ export default function Page() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+
+  function scrollToBottom() {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     const newMessages: UiMessage[] = [
       ...messages,
@@ -81,100 +94,100 @@ export default function Page() {
   }
 
   return (
-    <main className="main-container">
-      <div className="card">
-        <div style={{ marginBottom: "1rem" }}>
-          <div className="badge">🚀 {AI_NAME} · AI Travel Planner</div>
-          <h1 style={{ fontSize: "1.7rem", marginBottom: "0.5rem" }}>
-            Plan your next trip in one chat
-          </h1>
-          <p style={{ color: "#9ca3af", fontSize: "0.95rem" }}>
-            Tell me your origin, destination, dates, budget, and preferences.
-            I’ll suggest flights, hotels, local transport, and a day-by-day
-            itinerary.
-          </p>
-        </div>
+    <div className="app-shell">
+      <div className="app-inner">
+        <header className="app-header">
+          <div className="app-header-left">
+            <div className="app-logo">V</div>
+            <div>
+              <div className="app-title">{AI_NAME}</div>
+              <div className="app-subtitle">
+                End-to-end AI travel planning assistant
+              </div>
+            </div>
+          </div>
+          <div className="app-badge">Travel · Flights · Hotels · Itineraries</div>
+        </header>
 
-        <div className="chat-window">
-          {messages.map((m, i) => (
+        <div className="chat-container">
+          <div className="chat-messages">
+            {messages.map((m, idx) => (
+              <div
+                key={idx}
+                className={
+                  "message-row " +
+                  (m.role === "user" ? "user" : "assistant")
+                }
+              >
+                <div
+                  className={
+                    "message-bubble " +
+                    (m.role === "user" ? "user" : "assistant")
+                  }
+                >
+                  {m.role === "assistant" ? (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {m.content}
+                    </ReactMarkdown>
+                  ) : (
+                    <span>{m.content}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="message-row assistant">
+                <div className="message-bubble assistant">
+                  Thinking about the best routes, stays, and activities for you…
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="chat-composer">
             <div
-              key={i}
-              className={
-                "message " +
-                (m.role === "user" ? "message-user" : "message-assistant")
-              }
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: 6
+              }}
             >
-              <strong>{m.role === "user" ? "You" : AI_NAME}:</strong>{" "}
-              <span>{m.content}</span>
+              <button
+                type="button"
+                onClick={handleClear}
+                className="chat-secondary-button"
+              >
+                {CLEAR_CHAT_TEXT}
+              </button>
+              {loading && (
+                <div className="typing-indicator">
+                  {AI_NAME} is planning your trip…
+                </div>
+              )}
             </div>
-          ))}
-          {loading && (
-            <div className="message message-assistant">
-              <strong>{AI_NAME}:</strong> Thinking about the best options for
-              you…
-            </div>
-          )}
+
+            <form onSubmit={handleSubmit} className="chat-composer-inner">
+              <textarea
+                className="chat-input"
+                rows={1}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                placeholder="Ask anything about your trip — e.g., 'Plan a 5-day Switzerland trip from Kolkata in December with a 5 lakh budget for 2 people.'"
+              />
+              <button
+                type="submit"
+                className="chat-button"
+                disabled={loading || !input.trim()}
+              >
+                {loading ? "Planning…" : "Send"}
+              </button>
+            </form>
+          </div>
         </div>
-
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            marginTop: "1rem",
-            display: "flex",
-            gap: "0.5rem",
-            alignItems: "center"
-          }}
-        >
-          <button
-            type="button"
-            onClick={handleClear}
-            style={{
-              padding: "0.5rem 0.9rem",
-              borderRadius: "9999px",
-              border: "1px solid rgba(148, 163, 184, 0.6)",
-              background: "transparent",
-              color: "#e5e7eb",
-              fontSize: "0.85rem",
-              cursor: "pointer",
-              whiteSpace: "nowrap"
-            }}
-          >
-            {CLEAR_CHAT_TEXT}
-          </button>
-
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="e.g., Plan a 5-day budget trip from Mumbai to Bali in March for 2 people…"
-            style={{
-              flex: 1,
-              padding: "0.6rem 0.8rem",
-              borderRadius: "9999px",
-              border: "1px solid rgba(148, 163, 184, 0.6)",
-              background: "#020617",
-              color: "#e5e7eb",
-              fontSize: "0.95rem"
-            }}
-          />
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              padding: "0.6rem 1.1rem",
-              borderRadius: "9999px",
-              border: "none",
-              background: loading ? "#4b5563" : "#22c55e",
-              color: "#020617",
-              fontWeight: 600,
-              cursor: loading ? "not-allowed" : "pointer"
-            }}
-          >
-            {loading ? "Planning…" : "Ask"}
-          </button>
-        </form>
       </div>
-    </main>
+    </div>
   );
 }
-
